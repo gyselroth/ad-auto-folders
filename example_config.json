@@ -1,0 +1,90 @@
+{
+  "log": {
+    "stdout": {
+      "enabled": true,
+      "level": "debug"
+    },
+    "file": {
+      "enabled": false,
+      "path": "C:\\data\\log.txt",
+      "level": "debug"
+    },
+    "mail": {
+      "enabled": false,
+      "level": "error",
+      "smtp": {
+        "host": "mta.example.org",
+        "port": "25",
+        "username": "user@example.org",
+        "password": "password",
+      },
+      "from": "maint@example.org",
+      "subject": "Auto group folders error",
+      "recipients": [
+        "receiver@example.org"
+      ]
+    }
+  },
+  "folders": [
+    {
+      "id": "homes",
+      "root": "C:\\data\\homes",
+      "archive": true,
+      "archive_root": "C:\\data\\homes\\_archive",
+      "base": "OU=Users,DC=example,DC=ORG",
+      "filter": "*",
+      "scope": "OneLevel",
+      "acl": [
+        {
+          "privilege": "Read,Write",
+          "inheritance": "ContainerInherit,ObjectInherit",
+          "type": "Allow",
+          "resource": "self",
+          "propagation": "None"
+        }           
+      ]
+    },  
+    {
+      "id": "group_shares",
+      "root": "C:\\data\\groups",
+      "base": "OU=Groups,DC=example,DC=ORG",
+      "filter": "*",
+      "scope": "OneLevel",
+      "acl": [
+        {
+          "privilege": "Read,Write",
+          "inheritance": "ContainerInherit,ObjectInherit",
+          "type": "Allow",
+          "resource": "self",
+          "propagation": "None"
+        }           
+      ],
+      "subs": [
+        {
+          "name": "readonly",
+          "acl": [
+            {
+              "privilege": "Read",
+              "inheritance": "ContainerInherit,ObjectInherit",
+              "type": "Allow",
+              "resource": "self",
+              "propagation": "None"
+            }           
+          ]
+        },
+        {
+          "name": "writeonly",
+          "acl": [
+            {
+              "privilege": "Write",
+              "inheritance": "ContainerInherit,ObjectInherit",
+              "type": "Allow",
+              "resource": "self",
+              "propagation": "None"
+            }           
+          ]
+        },
+      ]
+    }
+  ]
+}
