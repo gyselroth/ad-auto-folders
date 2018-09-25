@@ -90,7 +90,7 @@ function mkdir($folder, $object, $root, $name) {
 function prepareFolder($folder) {
   try {
     log "debug" ("search ad with base "+$folder.base+" and filter "+$folder.filter)
-    $objects = Get-ADObject -SearchScope $folder.scope -SearchBase $folder.base -Filter $folder.filter
+    $objects = Get-ADObject -SearchScope $folder.scope -SearchBase $folder.base -Filter $folder.filter -Properties *
     return $objects;
   } catch {
     log "error" ("failed search ad with base "+$folder.base+" and filter "+$folder.filter+", exception="+$_.Exception.Message+"; item="+$_.Exception.ItemName)
@@ -127,7 +127,11 @@ function archive($folder, $found) {
             New-Item $folder.archive_root -type directory
           }
           
-          $dest = Join-Path $folder.archive_root -childpath $node.name
+          $time = Get-Date -Format "yyyy-MM-dd_HH_mm_ss"
+          $name = $node.name+'.'+$time
+          $dest = Join-Path $folder.archive_root -childpath $name
+          log "debug" ("move folder "+$path+" to "+$dest)         
+
           Move-Item -Path $path -Destination $dest
         }
       }     
@@ -150,18 +154,33 @@ foreach($folder in $config.folders) {
     if(!$object.DistinguishedName) {
       continue
     }
-        
-    $found += $object.Name
+
+    if($folder.name) {
+      log "debug" ("folder has configured name "+" "+$folder.name)
+
+      $string = $folder.name  
+      $callback = {
+        $args[0] = $args[0] -replace '[{}]',''
+        "$($object[$args[0]])"
+      }
+      
+      $name = [Regex]::Replace($string, '\{([a-zA-Z]+)\}', $callback)
+    } else {
+      log "debug" ("object attribute"+" "+$folder.name+" not found, fallback to name");
+      $name = $object.Name
+    }
+    
+    $found += $name
     log "debug" ("sync folder for ad object "+$object.DistinguishedName+" in folder "+$folder.id)
-    mkdir $folder $object $folder.root $object.name
+    mkdir $folder $object $folder.root $name
   }
   
   archive $folder $found
 }
 
 if($config.log.mail.enabled -and $global:mail -ne "") {
-    $password = ConvertTo-SecureString $config.log.mail.smtp.password -AsPlainText -Force
-    $credentials = New-Object System.Management.Automation.PSCredential $config.log.mail.smtp.username, $password
+  $password = ConvertTo-SecureString $config.log.mail.smtp.password -AsPlainText -Force
+  $credentials = New-Object System.Management.Automation.PSCredential $config.log.mail.smtp.username, $password
   
   foreach($receiver in $config.log.mail.recipients) {
     Send-MailMessage -Credential $credentials -From $config.log.mail.from -To $receiver -Subject $config.log.mail.subject -SmtpServer $config.log.mail.smtp.host -Body $global:mail -Port $config.log.mail.smtp.port -Usessl

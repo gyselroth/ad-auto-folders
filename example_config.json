@@ -16,7 +16,7 @@
         "host": "mta.example.org",
         "port": "25",
         "username": "user@example.org",
-        "password": "password",
+        "password": "password"
       },
       "from": "maint@example.org",
       "subject": "Auto group folders error",
@@ -29,6 +29,7 @@
     {
       "id": "homes",
       "root": "C:\\data\\homes",
+      "name": "{sAMAccountName}",
       "archive": true,
       "archive_root": "C:\\data\\homes\\_archive",
       "base": "OU=Users,DC=example,DC=ORG",
@@ -83,7 +84,7 @@
               "propagation": "None"
             }           
           ]
-        },
+        }
       ]
     }
   ]
