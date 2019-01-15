@@ -40,19 +40,21 @@ function modAcl($path, $folder, $object) {
     $list = (Get-Item $path).GetAccessControl('Access')
 
     foreach($rule in $folder.acl) {
-      if($rule.resource -ne "self") {
-        write-host $rule
-        $resource = Get-ADObject $rule.resource
-      } else {
+    log "debug" ("process acl rule "+$rule.resource+" "+$rule.privilege+" "+$rule.inheritance+" "+$rule.propagation+" "+$rule.type+" for path "+$path);     
+
+    if($rule.resource -ne "self") {
+        $resource = Get-ADObject -SearchScope Subtree -LDAPFilter $rule.resource -Properties *
+    $count = $resource | measure;
+    
+    if($count.Count -ne 1) {
+      log "error" ("skip acl rule "+$rule.resource+" "+$rule.privilege+" "+$rule.inheritance+" "+$rule.propagation+" "+$rule.type+" for path "+$path+"; none or multiple objects matched");     
+      continue;
+    }
+    } else {
         $resource = $object
       }
-      
-      if($resource.SamAccountName) {
-        $resource = $resource.SamAccountName
-      } else {
-        $resource = $resource.Name
-      }
-
+          
+    $resource = $resource.sAMAccountName
       log "debug" ("set acl rule "+$resource+" "+$rule.privilege+" "+$rule.inheritance+" "+$rule.propagation+" "+$rule.type+" for path "+$path);
       $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($resource, $rule.privilege, $rule.inheritance, $rule.propagation, $rule.type)
       $list.SetAccessRule($rule)
@@ -65,18 +67,18 @@ function modAcl($path, $folder, $object) {
 }
 
 function mkdir($folder, $object, $root, $name) {
-    $path = Join-Path $root -childpath $name;
+  $path = Join-Path $root -childpath $name;
   log "debug" ("verify if folder "+$path+" exists")
     
-    if (Test-Path $path) {
+  if (Test-Path $path) {
     log "debug", ("path "+$path+" already exists")
   } else {
-        try {
+    try {
       log "info" ("create folder "+$path)
-            New-Item $path -type directory
-        } catch {
+      New-Item $path -type directory
+    } catch {
       log "error" ("failed create directory "+$path+", exception="+$_.Exception.Message+"; item="+$_.Exception.ItemName)
-        }
+    }
   }
   
   modAcl $path $folder $object
@@ -88,12 +90,18 @@ function mkdir($folder, $object, $root, $name) {
 }
 
 function prepareFolder($folder) {
+  $filter = '(objectClass=*)'
+  
   try {
-    log "debug" ("search ad with base "+$folder.base+" and filter "+$folder.filter)
-    $objects = Get-ADObject -SearchScope $folder.scope -SearchBase $folder.base -Filter $folder.filter -Properties *
+  if($folder.filter -ne $null) {
+    $filter = $folder.filter
+  }
+  
+    log "debug" ("search ad with base "+$folder.base+" and ldap filter "+$filter)
+    $objects = Get-ADObject -SearchScope $folder.scope -SearchBase $folder.base -LDAPFilter $filter -Properties *
     return $objects;
   } catch {
-    log "error" ("failed search ad with base "+$folder.base+" and filter "+$folder.filter+", exception="+$_.Exception.Message+"; item="+$_.Exception.ItemName)
+    log "error" ("failed search ad with base "+$folder.base+" and ldap filter "+$filter+", exception="+$_.Exception.Message+"; item="+$_.Exception.ItemName)
     return @()
   }
 }
