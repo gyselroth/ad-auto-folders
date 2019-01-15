@@ -33,7 +33,7 @@
       "archive": true,
       "archive_root": "C:\\data\\homes\\_archive",
       "base": "OU=Users,DC=example,DC=ORG",
-      "filter": "*",
+      "filter": "(objectClass=*)",
       "scope": "OneLevel",
       "acl": [
         {
@@ -49,7 +49,7 @@
       "id": "group_shares",
       "root": "C:\\data\\groups",
       "base": "OU=Groups,DC=example,DC=ORG",
-      "filter": "*",
+      "filter": "(objectClass=*)",
       "scope": "OneLevel",
       "acl": [
         {
